@@ -207,6 +207,7 @@ class PlanResponse(BaseModel):
     message: str = Field("여행 계획이 성공적으로 생성되었습니다", description="응답 메시지")
     processing_time: Optional[float] = Field(None, description="처리 시간(초)")
     mode: str = Field(..., description="사용된 계획 생성 모드")
+    local_info: Optional[Dict[str, Any]] = Field(None, description="현지 정보")
     api_usage: Optional[Dict[str, int]] = Field(None, description="API 사용량")
 
 class ErrorResponse(BaseModel):

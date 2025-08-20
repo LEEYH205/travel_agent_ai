@@ -52,12 +52,13 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - [x] 5.1 클라우드 배포 준비 - Docker 및 Docker Compose 완성
 - [x] 5.2 API 문서화 - FastAPI 자동 문서화 완성
 - [x] 5.3 사용자 가이드 작성 - README 및 TODO 완성
-- [ ] 5.4 실제 클라우드 배포 (Streamlit Cloud/Hugging Face)
+- [x] 5.4 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
+- [ ] 5.5 실제 클라우드 배포 (Streamlit Cloud/Hugging Face)
 
 ## 🚀 현재 진행 상황
 
-**현재 단계**: Phase 4 완료 - 시스템 통합 및 최적화 완료
-**다음 단계**: Phase 5.4 - 실제 클라우드 배포
+**현재 단계**: Phase 5.4 완료 - 백엔드 오류 수정 완료
+**다음 단계**: Phase 5.5 - 실제 클라우드 배포
 
 ### 완료된 작업
 - ✅ CrewAI 기반 Agent 시스템 완성 (5개 에이전트)
@@ -68,6 +69,7 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - ✅ 에러 처리 및 폴백 시스템 완성
 - ✅ 테스트 스위트 완성 (19개 테스트 모두 통과)
 - ✅ Docker 배포 환경 구축 완성
+- ✅ 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
 
 ## 🛠️ 기술 스택
 
@@ -178,7 +180,7 @@ DEFAULT_LOCALE=ko_KR
 
 ## 🔄 다음 단계
 
-1. **실제 클라우드 배포** (Phase 5.4)
+1. **실제 클라우드 배포** (Phase 5.5)
    - Streamlit Cloud에 프론트엔드 배포
    - Hugging Face Spaces에 백엔드 배포
    - 도메인 및 SSL 인증서 설정

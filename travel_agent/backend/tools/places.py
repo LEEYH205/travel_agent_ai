@@ -281,12 +281,10 @@ class PlacesService:
                 "lon": 2.3480,
                 "description": f"{destination}의 전통 요리를 맛볼 수 있는 레스토랑입니다.",
                 "est_stay_min": 60,
-                "rating": 8.8,
-                "price": 3,
-                "url": "",
-                "address": f"{destination} 미식가 101번지",
-                "popular_times": {},
-                "tips": []
+                "rating": 4.8,
+                "price_level": 3,
+                "website": "",
+                "address": f"{destination} 미식가 101번지"
             })
         
         if "쇼핑" in interests:
@@ -297,12 +295,10 @@ class PlacesService:
                 "lon": 2.3500,
                 "description": f"{destination}의 다양한 상품을 구매할 수 있는 쇼핑 센터입니다.",
                 "est_stay_min": 120,
-                "rating": 7.5,
-                "price": 2,
-                "url": "",
-                "address": f"{destination} 쇼핑로 202번지",
-                "popular_times": {},
-                "tips": []
+                "rating": 4.5,
+                "price_level": 2,
+                "website": "",
+                "address": f"{destination} 쇼핑로 202번지"
             })
         
         return demo_places[:limit]

@@ -454,13 +454,17 @@ class EnhancedCrewOrchestrator:
             # 요약 생성
             summary = f"{preferences.destination} {preferences.start_date}~{preferences.end_date}, 관심사: {', '.join(preferences.interests) or '일반'}"
             
+            # 현지 정보 추출
+            local_info = self._extract_local_info_from_result(result)
+            
             return PlanResponse(
                 itinerary=Itinerary(
                     summary=summary,
                     days=days,
                     tips=tips
                 ),
-                mode="crewai"
+                mode="crewai",
+                local_info=local_info
             )
             
         except Exception as e:
@@ -569,6 +573,27 @@ class EnhancedCrewOrchestrator:
                 safety=["일반적인 여행 주의사항 준수"]
             )
     
+    def _extract_local_info_from_result(self, result: Any) -> Optional[Dict[str, Any]]:
+        """CrewAI 결과에서 현지 정보 추출"""
+        try:
+            result_str = str(result)
+            
+            # 현지 가이드 정보가 포함된 경우 이를 현지 정보로 변환
+            start = result_str.find("## 🎭 문화 및 예의")
+            if start != -1:
+                local_info_text = result_str[start:]
+                return {
+                    "type": "crewai_generated",
+                    "content": local_info_text[:1000] + "..." if len(local_info_text) > 1000 else local_info_text,
+                    "source": "crewai_local_guide"
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"현지 정보 추출 중 오류: {e}")
+            return None
+    
     async def _create_basic_itinerary(self, preferences: UserPreferences) -> List[DayPlan]:
         """기본 일정 생성 (폴백)"""
         try:
@@ -615,7 +640,12 @@ class EnhancedCrewOrchestrator:
                     days=days,
                     tips=tips
                 ),
-                mode="crewai_fallback"
+                mode="crewai_fallback",
+                local_info={
+                    "type": "fallback",
+                    "content": "기본 현지 정보",
+                    "source": "fallback_system"
+                }
             )
             
         except Exception as e:
@@ -651,7 +681,12 @@ class EnhancedCrewOrchestrator:
                         safety=["안전한 여행"]
                     )
                 ),
-                mode="emergency_fallback"
+                mode="emergency_fallback",
+                local_info={
+                    "type": "emergency_fallback",
+                    "content": "긴급 폴백 현지 정보",
+                    "source": "emergency_system"
+                }
             )
 
 # 전역 오케스트레이터 인스턴스

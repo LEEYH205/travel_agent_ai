@@ -128,14 +128,14 @@ class WeatherService:
             return {
                 "date": datetime.now().strftime("%Y-%m-%d"),
                 "summary": weather.get("description", "알 수 없음"),
-                "temp_c": round(main.get("temp", 0)),
-                "feels_like_c": round(main.get("feels_like", 0)),
+                "temp_c": round(float(main.get("temp", 0))),
+                "feels_like_c": round(float(main.get("feels_like", 0))),
                 "condition": self._map_weather_condition(weather.get("main", "")),
-                "humidity": main.get("humidity", 0),
-                "wind_speed": round(wind.get("speed", 0) * 3.6, 1),  # m/s to km/h
+                "humidity": int(main.get("humidity", 0)),
+                "wind_speed": round(float(wind.get("speed", 0)) * 3.6, 1),  # m/s to km/h
                 "icon": weather.get("icon", ""),
-                "pressure": main.get("pressure", 0),
-                "visibility": data.get("visibility", 0)
+                "pressure": int(main.get("pressure", 0)),
+                "visibility": int(data.get("visibility", 0))
             }
         except Exception as e:
             logger.error(f"현재 날씨 데이터 파싱 오류: {e}")
@@ -160,11 +160,11 @@ class WeatherService:
                 daily_forecast = {
                     "date": date,
                     "summary": weather.get("description", "알 수 없음"),
-                    "temp_c": round(main.get("temp", 0)),
-                    "temp_min": round(main.get("temp_min", 0)),
-                    "temp_max": round(main.get("temp_max", 0)),
+                    "temp_c": round(float(main.get("temp", 0))),
+                    "temp_min": round(float(main.get("temp_min", 0))),
+                    "temp_max": round(float(main.get("temp_max", 0))),
                     "condition": self._map_weather_condition(weather.get("main", "")),
-                    "humidity": main.get("humidity", 0),
+                    "humidity": int(main.get("humidity", 0)),
                     "icon": weather.get("icon", "")
                 }
                 

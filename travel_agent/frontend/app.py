@@ -6,7 +6,7 @@ import os
 
 # 시각화 컴포넌트 import
 try:
-    from .components import (
+    from travel_agent.frontend.components import (
         display_itinerary_summary,
         display_visualizations,
         create_weather_widget,
@@ -15,24 +15,13 @@ try:
         create_budget_estimator
     )
 except ImportError:
-    # 상대 import가 실패할 경우 절대 import 시도
-    try:
-        from travel_agent.frontend.components import (
-            display_itinerary_summary,
-            display_visualizations,
-            create_weather_widget,
-            create_interactive_map,
-            create_packing_list,
-            create_budget_estimator
-        )
-    except ImportError:
-        # 컴포넌트를 찾을 수 없는 경우 기본 함수들 정의
-        def display_itinerary_summary(data): pass
-        def display_visualizations(data): pass
-        def create_weather_widget(weather_data): pass
-        def create_interactive_map(days): pass
-        def create_packing_list(tips, weather_data=None): pass
-        def create_budget_estimator(days, budget_level): pass
+    # 컴포넌트를 찾을 수 없는 경우 기본 함수들 정의
+    def display_itinerary_summary(data): pass
+    def display_visualizations(data): pass
+    def create_weather_widget(weather_data): pass
+    def create_interactive_map(days): pass
+    def create_packing_list(tips, weather_data=None): pass
+    def create_budget_estimator(days, budget_level): pass
 
 # 피드백 시스템 import
 try:
@@ -778,7 +767,7 @@ if submitted:
                     f"{backend_url}/plan", 
                     params={"mode": mode}, 
                     json=payload, 
-                    timeout=180.0
+                    timeout=600.0
                 )
                 r.raise_for_status()
                 data = r.json()["itinerary"]
@@ -959,7 +948,9 @@ if submitted:
                 )
                 
             except httpx.TimeoutException:
-                st.error("⏰ 요청 시간이 초과되었습니다. 다시 시도해주세요.")
+                st.error("⏰ 요청 시간이 초과되었습니다. CrewAI가 복잡한 계획을 생성하는 중입니다.")
+                st.info("💡 CrewAI 모드는 5-10분 정도 소요될 수 있습니다. 잠시 기다린 후 다시 시도해주세요.")
+                st.warning("🔄 백엔드에서는 계획 생성이 계속 진행 중일 수 있습니다.")
             except httpx.HTTPStatusError as e:
                 st.error(f"❌ 서버 오류: {e.response.status_code}")
                 st.error(f"오류 내용: {e.response.text}")
