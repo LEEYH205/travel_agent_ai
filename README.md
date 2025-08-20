@@ -48,17 +48,17 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - [x] 4.3 성능 최적화 - 캐싱 및 폴백 시스템 완성
 - [x] 4.4 테스트 코드 작성 - 19개 테스트 모두 통과
 
-### **Phase 5: 배포 및 문서화** 🔄
+### **Phase 5: 배포 및 문서화** ✅
 - [x] 5.1 클라우드 배포 준비 - Docker 및 Docker Compose 완성
 - [x] 5.2 API 문서화 - FastAPI 자동 문서화 완성
 - [x] 5.3 사용자 가이드 작성 - README 및 TODO 완성
 - [x] 5.4 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
-- [ ] 5.5 실제 클라우드 배포 (Streamlit Cloud/Hugging Face)
+- [x] 5.5 실제 클라우드 배포 완료 (Streamlit Cloud + Hugging Face Spaces)
 
 ## 🚀 현재 진행 상황
 
-**현재 단계**: Phase 5.4 완료 - 백엔드 오류 수정 완료
-**다음 단계**: Phase 5.5 - 실제 클라우드 배포
+**현재 단계**: Phase 5.5 완료 - 클라우드 배포 완료 ✅
+**다음 단계**: Phase 6 - 성능 모니터링 및 최적화
 
 ### 완료된 작업
 - ✅ CrewAI 기반 Agent 시스템 완성 (5개 에이전트)
@@ -70,6 +70,7 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - ✅ 테스트 스위트 완성 (19개 테스트 모두 통과)
 - ✅ Docker 배포 환경 구축 완성
 - ✅ 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
+- ✅ 클라우드 배포 완료 (Streamlit Cloud + Hugging Face Spaces)
 
 ## 🛠️ 기술 스택
 
@@ -156,7 +157,37 @@ streamlit run travel_agent/frontend/app.py --server.port 8502
 - **포트 충돌**: `lsof -i :8002`로 포트 사용 확인
 - **가상환경**: `which python`으로 올바른 Python 경로 확인
 
-## 🔑 Environment variables (.env)
+## 🌐 **클라우드 배포 정보**
+
+### **Streamlit Cloud (프론트엔드)**
+- **URL**: https://travelagentai-lyh205.streamlit.app/
+- **상태**: ✅ 배포 완료
+- **백엔드 연결**: Hugging Face Spaces 백엔드와 연동
+- **환경 변수**: Streamlit Cloud Secrets에서 관리
+
+### **Hugging Face Spaces (백엔드)**
+- **URL**: https://eddieleyh-travel-agent-ai-backend.hf.space/
+- **상태**: ✅ 배포 완료
+- **API 엔드포인트**: 
+  - 루트: `/` - API 정보 및 상태
+  - 문서: `/docs` - FastAPI 자동 문서화
+  - 헬스: `/health` - 시스템 상태 확인
+  - 상태: `/api/status` - API 키 상태 확인
+  - 계획: `/plan` - 여행 계획 생성
+- **환경 변수**: Hugging Face Space Secrets에서 관리
+
+### **연동 구조**
+```
+Streamlit Cloud (프론트엔드) 
+    ↓ HTTP API 호출
+Hugging Face Spaces (백엔드)
+    ↓ OpenAI API 호출
+OpenAI GPT-4 (AI 모델)
+```
+
+---
+
+## 🔑 **Environment variables (.env)**
 
 ```bash
 OPENAI_API_KEY=sk-...
@@ -178,22 +209,29 @@ DEFAULT_LOCALE=ko_KR
 - **Crew mode**: CrewAI를 통한 Researcher/Attractions/Planner/LocalGuide 협업
 - **Production**: `tools/places.py`와 `tools/directions.py`를 실제 API로 교체 필요
 
-## 🔄 다음 단계
+## 🔄 **다음 단계**
 
-1. **실제 클라우드 배포** (Phase 5.5)
-   - Streamlit Cloud에 프론트엔드 배포
-   - Hugging Face Spaces에 백엔드 배포
-   - 도메인 및 SSL 인증서 설정
+### **Phase 6: 성능 모니터링 및 최적화** 🔄
+1. **성능 모니터링 구축**
+   - Prometheus + Grafana 모니터링 시스템
+   - API 응답 시간 및 사용량 추적
+   - Hugging Face Space 리소스 모니터링
 
-2. **성능 모니터링 및 최적화**
-   - Prometheus + Grafana 모니터링 구축
+2. **성능 최적화**
    - API 응답 시간 최적화
+   - 캐싱 전략 개선
    - 사용자 피드백 분석 시스템
 
-3. **추가 기능 개발**
+### **Phase 7: 추가 기능 개발** 📋
+1. **사용자 경험 개선**
    - 다국어 지원 (영어, 일본어 등)
-   - 모바일 앱 개발
+   - 모바일 반응형 UI 개선
    - 소셜 기능 (여행 계획 공유)
+
+2. **고급 기능**
+   - 실시간 여행 계획 수정
+   - AI 기반 여행 패턴 분석
+   - 개인화된 추천 시스템
 
 ## 🤝 기여하기
 

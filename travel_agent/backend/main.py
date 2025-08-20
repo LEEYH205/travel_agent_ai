@@ -153,6 +153,23 @@ async def validate_api_keys_for_mode(mode: str) -> None:
     # 다른 모드들에 대한 검증도 추가 가능
     return None
 
+# 루트 경로 핸들러
+@app.get("/", tags=["시스템"])
+async def root():
+    """루트 경로 - API 정보 및 상태"""
+    return {
+        "message": "AI 여행 계획사 - Travel Agent AI 백엔드",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "api_status": "/api/status",
+            "plan": "/plan"
+        },
+        "timestamp": time.time()
+    }
+
 # 헬스 체크 엔드포인트
 @app.get("/health", tags=["시스템"])
 async def health_check():
