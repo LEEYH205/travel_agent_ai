@@ -505,12 +505,16 @@ with st.sidebar:
     st.header("⚙️ 설정")
     
     # 백엔드 설정
-    # 환경변수에서 백엔드 URL 가져오기 (기본값: localhost:8000)
-    default_backend = os.getenv("BACKEND_URL", "http://localhost:8000")
+    # Streamlit secrets 또는 환경변수에서 백엔드 URL 가져오기
+    try:
+        default_backend = st.secrets.get("BACKEND_URL", "http://localhost:8000")
+    except:
+        default_backend = os.getenv("BACKEND_URL", "http://localhost:8000")
+    
     backend_url = st.text_input(
         "백엔드 URL", 
         value=default_backend,
-        help="백엔드 서버의 URL을 입력하세요 (환경변수 BACKEND_URL로 설정 가능)"
+        help="백엔드 서버의 URL을 입력하세요 (Streamlit secrets 또는 환경변수 BACKEND_URL로 설정 가능)"
     )
     
     # 오케스트레이터 모드 선택
