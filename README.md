@@ -166,7 +166,7 @@ streamlit run travel_agent/frontend/app.py --server.port 8502
 - **환경 변수**: Streamlit Cloud Secrets에서 관리
 
 ### **Hugging Face Spaces (백엔드)**
-- **URL**: https://eddieleyh-travel-agent-ai-backend.hf.space/
+- **URL**: https://eddieleeyh-travel-agent-ai-backend.hf.space/
 - **상태**: ✅ 배포 완료
 - **API 엔드포인트**: 
   - 루트: `/` - API 정보 및 상태
