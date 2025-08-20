@@ -2,7 +2,7 @@ from __future__ import annotations
 from crewai import Agent
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
-from ..schemas import UserPreferences, Place, DayPlan, Leg
+from ..schemas import UserPreferences, Place, DayPlan, Transfer
 from ..tools.directions import haversine_km, estimate_walk_minutes
 
 class ItineraryPlannerAgent:
@@ -54,6 +54,10 @@ class ItineraryPlannerAgent:
         end = datetime.fromisoformat(preferences.end_date)
         num_days = (end - start).days + 1
         
+        # 장소가 없는 경우 기본 일정 생성
+        if not places:
+            return self._create_fallback_plan(preferences, num_days, start)
+        
         # 하루당 방문할 명소 수 계산
         if preferences.pace == "relaxed":
             per_day = max(2, min(4, len(places) // max(1, num_days)))
@@ -73,8 +77,11 @@ class ItineraryPlannerAgent:
             place_idx += per_day
             
             # 명소가 부족한 경우 루프
-            if place_idx >= len(places):
+            if place_idx >= len(places) and places:
                 place_idx = 0
+                # 남은 장소가 부족하면 첫 번째 장소라도 추가
+                if not day_places and places:
+                    day_places = [places[0]]
             
             # 시간대별 명소 배치
             morning_places = day_places[:1] if day_places else []
@@ -92,6 +99,37 @@ class ItineraryPlannerAgent:
                 dinner=None,  # 나중에 추가
                 evening=evening_places,
                 transfers=transfers
+            )
+            
+            days.append(day_plan)
+        
+        return days
+    
+    def _create_fallback_plan(self, preferences: UserPreferences, num_days: int, start: datetime) -> List[DayPlan]:
+        """장소 정보가 없는 경우 기본 일정 생성"""
+        days: List[DayPlan] = []
+        
+        # 기본 임시 장소 생성
+        fallback_place = Place(
+            name=f"{preferences.destination} 관광",
+            category="general",
+            lat=0.0,
+            lon=0.0,
+            description=f"{preferences.destination} 지역 탐방",
+            est_stay_min=180  # 3시간
+        )
+        
+        for i in range(num_days):
+            current_date = start + timedelta(days=i)
+            
+            day_plan = DayPlan(
+                date=current_date.date().isoformat(),
+                morning=[fallback_place],
+                lunch=f"{preferences.destination} 현지 음식 체험",
+                afternoon=[],
+                dinner=f"{preferences.destination} 저녁 식사",
+                evening=[],
+                transfers=[]
             )
             
             days.append(day_plan)
@@ -186,7 +224,7 @@ class ItineraryPlannerAgent:
         
         return optimized
     
-    def _calculate_transfers(self, places: List[Place]) -> List[Leg]:
+    def _calculate_transfers(self, places: List[Place]) -> List[Transfer]:
         """명소 간 이동 경로 계산"""
         transfers = []
         
@@ -197,7 +235,7 @@ class ItineraryPlannerAgent:
             distance = haversine_km(current.lat, current.lon, next_place.lat, next_place.lon)
             travel_time = estimate_walk_minutes(distance)
             
-            leg = Leg(
+            transfer = Transfer(
                 from_place=current.name,
                 to_place=next_place.name,
                 travel_min=travel_time,
@@ -205,7 +243,7 @@ class ItineraryPlannerAgent:
                 mode="walk"  # 기본값은 도보
             )
             
-            transfers.append(leg)
+            transfers.append(transfer)
         
         return transfers
     

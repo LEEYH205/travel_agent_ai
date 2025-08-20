@@ -2,7 +2,9 @@ from __future__ import annotations
 import os
 import json
 import asyncio
+import logging
 from typing import Dict, Any, List
+from datetime import datetime
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
@@ -17,6 +19,9 @@ from ..tools.directions import get_directions_async, optimize_route_async
 from ..tools.wiki import get_destination_info
 
 load_dotenv()
+
+# Logger 설정
+logger = logging.getLogger(__name__)
 
 class EnhancedCrewOrchestrator:
     """향상된 CrewAI 기반 여행 계획 오케스트레이터"""
@@ -43,6 +48,13 @@ class EnhancedCrewOrchestrator:
         """CrewAI Agent들 초기화"""
         agents = {}
         
+        # 도구들을 바인딩된 메서드로 생성
+        web_search_tool = self._create_web_search_tool()
+        search_places_tool = self._create_search_places_tool()
+        calculate_route_tool = self._create_calculate_route_tool()
+        optimize_route_tool = self._create_optimize_route_tool()
+        get_local_info_tool = self._create_get_local_info_tool()
+        
         # 1. Destination Researcher Agent
         agents['researcher'] = Agent(
             role="Travel Destination Research Specialist",
@@ -51,7 +63,7 @@ class EnhancedCrewOrchestrator:
             세계 각지의 여행지에 대한 깊이 있는 지식을 가지고 있으며, 
             날씨, 문화, 축제, 시즌별 특이사항 등을 종합적으로 분석하여 
             여행 계획에 필요한 핵심 정보를 제공합니다.""",
-            tools=[self._web_search_tool],
+            tools=[web_search_tool],
             llm=self.llm,
             verbose=True,
             allow_delegation=False
@@ -66,7 +78,7 @@ class EnhancedCrewOrchestrator:
             사용자의 취향과 여행 스타일에 맞는 맞춤형 추천을 제공합니다.
             문화, 역사, 자연, 엔터테인먼트 등 다양한 카테고리의 명소를 
             균형있게 조합하여 완벽한 여행 경험을 만들어냅니다.""",
-            tools=[self._search_places_tool, self._web_search_tool],
+            tools=[search_places_tool, web_search_tool],
             llm=self.llm,
             verbose=True,
             allow_delegation=False
@@ -81,7 +93,7 @@ class EnhancedCrewOrchestrator:
             효율적이고 만족도 높은 여행 일정을 만들어냅니다.
             하루의 흐름을 자연스럽게 연결하고, 피로도를 최소화하면서 
             최대한 많은 경험을 할 수 있도록 계획합니다.""",
-            tools=[self._calculate_route_tool, self._optimize_route_tool],
+            tools=[calculate_route_tool, optimize_route_tool],
             llm=self.llm,
             verbose=True,
             allow_delegation=False
@@ -95,7 +107,7 @@ class EnhancedCrewOrchestrator:
             각 지역의 문화적 특성, 관습, 주의사항을 잘 알고 있으며, 
             실용적이고 구체적인 여행 팁을 제공합니다.
             안전하고 문화적으로 존중받는 여행을 위한 가이드 역할을 합니다.""",
-            tools=[self._web_search_tool, self._get_local_info_tool],
+            tools=[web_search_tool, get_local_info_tool],
             llm=self.llm,
             verbose=True,
             allow_delegation=False
@@ -103,7 +115,46 @@ class EnhancedCrewOrchestrator:
         
         return agents
     
-    @tool
+    def _create_web_search_tool(self):
+        """웹 검색 도구 생성"""
+        @tool
+        def web_search_tool(query: str) -> str:
+            """최신 웹 검색을 통한 정보 수집 (이벤트, 축제, 시즌별 특이사항 등)"""
+            return self._web_search_tool(query)
+        return web_search_tool
+    
+    def _create_search_places_tool(self):
+        """장소 검색 도구 생성"""
+        @tool
+        def search_places_tool(payload: dict) -> str:
+            """사용자 관심사와 선호도에 맞는 관광명소 검색 및 추천"""
+            return self._search_places_tool(payload)
+        return search_places_tool
+    
+    def _create_calculate_route_tool(self):
+        """경로 계산 도구 생성"""
+        @tool
+        def calculate_route_tool(payload: dict) -> str:
+            """두 지점 간의 경로 계산 및 이동 시간 제공"""
+            return self._calculate_route_tool(payload)
+        return calculate_route_tool
+    
+    def _create_optimize_route_tool(self):
+        """경로 최적화 도구 생성"""
+        @tool
+        def optimize_route_tool(payload: dict) -> str:
+            """여러 장소를 방문하는 최적 경로 계산"""
+            return self._optimize_route_tool(payload)
+        return optimize_route_tool
+    
+    def _create_get_local_info_tool(self):
+        """현지 정보 도구 생성"""
+        @tool
+        def get_local_info_tool(payload: dict) -> str:
+            """여행지의 현지 정보, 문화, 주의사항 수집"""
+            return self._get_local_info_tool(payload)
+        return get_local_info_tool
+    
     def _web_search_tool(self, query: str) -> str:
         """최신 웹 검색을 통한 정보 수집 (이벤트, 축제, 시즌별 특이사항 등)"""
         try:
@@ -115,7 +166,6 @@ class EnhancedCrewOrchestrator:
         except Exception as e:
             return f"검색 중 오류 발생: {e}"
     
-    @tool
     def _search_places_tool(self, payload: dict) -> str:
         """사용자 관심사와 선호도에 맞는 관광명소 검색 및 추천"""
         try:
@@ -150,7 +200,6 @@ class EnhancedCrewOrchestrator:
         except Exception as e:
             return f"장소 검색 중 오류 발생: {e}"
     
-    @tool
     def _calculate_route_tool(self, payload: dict) -> str:
         """두 지점 간의 경로 계산 및 이동 시간 제공"""
         try:
@@ -179,7 +228,6 @@ class EnhancedCrewOrchestrator:
         except Exception as e:
             return f"경로 계산 중 오류 발생: {e}"
     
-    @tool
     def _optimize_route_tool(self, payload: dict) -> str:
         """여러 장소를 방문하는 최적 경로 계산"""
         try:
@@ -213,7 +261,6 @@ class EnhancedCrewOrchestrator:
         except Exception as e:
             return f"경로 최적화 중 오류 발생: {e}"
     
-    @tool
     def _get_local_info_tool(self, payload: dict) -> str:
         """여행지의 현지 정보, 문화, 주의사항 수집"""
         try:
@@ -412,7 +459,8 @@ class EnhancedCrewOrchestrator:
                     summary=summary,
                     days=days,
                     tips=tips
-                )
+                ),
+                mode="crewai"
             )
             
         except Exception as e:
@@ -525,13 +573,15 @@ class EnhancedCrewOrchestrator:
         """기본 일정 생성 (폴백)"""
         try:
             # 장소 검색
-            places = await search_places_async(preferences.destination, preferences.interests, 12)
+            places_data = await search_places_async(preferences.destination, preferences.interests, 12)
             
-            if not places:
+            if not places_data:
                 # 데모 장소 사용
                 from ..tools.places import get_candidate_places
                 places_data = get_candidate_places(preferences.destination, preferences.interests)
-                places = [Place(**place) for place in places_data]
+            
+            # 딕셔너리를 Place 객체로 변환
+            places = [Place(**place) for place in places_data]
             
             # 기본 일정 계획
             from ..agents.planner import ItineraryPlannerAgent
@@ -564,22 +614,44 @@ class EnhancedCrewOrchestrator:
                     summary=summary,
                     days=days,
                     tips=tips
-                )
+                ),
+                mode="crewai_fallback"
             )
             
         except Exception as e:
             logger.error(f"폴백 계획 수립 중 오류: {e}")
-            # 최종 폴백: 빈 일정 반환
+            # 최종 폴백: 기본 일정으로 대체
+            start = datetime.fromisoformat(preferences.start_date)
+            fallback_place = Place(
+                name=f"{preferences.destination} 관광",
+                category="general",
+                lat=0.0,
+                lon=0.0,
+                description=f"{preferences.destination} 지역 탐방",
+                est_stay_min=180
+            )
+            
+            fallback_day = DayPlan(
+                date=start.date().isoformat(),
+                morning=[fallback_place],
+                lunch=f"{preferences.destination} 현지 음식 체험",
+                afternoon=[],
+                dinner=f"{preferences.destination} 저녁 식사",
+                evening=[],
+                transfers=[]
+            )
+            
             return PlanResponse(
                 itinerary=Itinerary(
-                    summary=f"{preferences.destination} 여행 계획을 생성할 수 없습니다.",
-                    days=[],
+                    summary=f"{preferences.destination} 기본 여행 계획",
+                    days=[fallback_day],
                     tips=Tips(
                         etiquette=["기본적인 여행 예의 준수"],
                         packing=["필수 여행용품"],
                         safety=["안전한 여행"]
                     )
-                )
+                ),
+                mode="emergency_fallback"
             )
 
 # 전역 오케스트레이터 인스턴스

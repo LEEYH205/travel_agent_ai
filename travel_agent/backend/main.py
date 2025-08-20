@@ -151,7 +151,9 @@ async def api_status(api_keys: Dict[str, bool] = Depends(get_api_keys)):
             "directions": api_keys["google_maps"],
             "places": api_keys["foursquare"],
             "web_search": api_keys["tavily"]
-        }
+        },
+        "version": "1.0.0",
+        "uptime": None  # TODO: 서버 시작 시간을 추적하여 실제 uptime 계산
     }
 
 # 여행 계획 생성 메인 엔드포인트

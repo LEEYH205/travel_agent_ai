@@ -125,12 +125,10 @@ class PlacesService:
                     "lon": result.get("geocodes", {}).get("main", {}).get("longitude", 0),
                     "description": result.get("description", ""),
                     "rating": result.get("rating", 0),
-                    "price": result.get("price", 0),
-                    "url": result.get("link", ""),
+                    "price_level": result.get("price", 0),
+                    "website": result.get("link", ""),
                     "address": result.get("location", {}).get("formatted_address", ""),
-                    "est_stay_min": self._estimate_stay_time(category, result),
-                    "popular_times": result.get("popular", {}),
-                    "tips": result.get("tips", {}).get("groups", [{}])[0].get("items", [])[:3]
+                    "est_stay_min": self._estimate_stay_time(category, result)
                 }
                 
                 # 위도/경도가 유효한 경우만 추가
@@ -243,12 +241,10 @@ class PlacesService:
                 "lon": 2.3376,
                 "description": f"{destination}의 대표적인 박물관으로, 다양한 문화재와 예술 작품을 전시합니다.",
                 "est_stay_min": 120,
-                "rating": 8.5,
-                "price": 2,
-                "url": "",
-                "address": f"{destination} 중앙가 123번지",
-                "popular_times": {},
-                "tips": []
+                "rating": 4.5,
+                "price_level": 2,
+                "website": "",
+                "address": f"{destination} 중앙가 123번지"
             },
             {
                 "name": f"{destination} 대성당",
@@ -257,12 +253,10 @@ class PlacesService:
                 "lon": 2.3499,
                 "description": f"{destination}의 역사적인 대성당으로, 아름다운 건축물과 종교 예술을 감상할 수 있습니다.",
                 "est_stay_min": 60,
-                "rating": 9.0,
-                "price": 1,
-                "url": "",
-                "address": f"{destination} 종교로 456번지",
-                "popular_times": {},
-                "tips": []
+                "rating": 5.0,
+                "price_level": 1,
+                "website": "",
+                "address": f"{destination} 종교로 456번지"
             },
             {
                 "name": f"{destination} 강변 산책로",
@@ -271,12 +265,10 @@ class PlacesService:
                 "lon": 2.354,
                 "description": f"{destination}의 아름다운 강변을 따라 걷는 산책로로, 자연과 도시의 조화를 느낄 수 있습니다.",
                 "est_stay_min": 45,
-                "rating": 8.0,
-                "price": 0,
-                "url": "",
-                "address": f"{destination} 강변길 789번지",
-                "popular_times": {},
-                "tips": []
+                "rating": 4.0,
+                "price_level": None,
+                "website": "",
+                "address": f"{destination} 강변길 789번지"
             }
         ]
         
