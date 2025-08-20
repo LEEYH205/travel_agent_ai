@@ -103,12 +103,56 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env  # add your keys if available
 
-# 2) Run backend
-uvicorn travel_agent.backend.main:app --reload --port 8000
+# 2) Run Backend (Terminal 1)
+source .venv/bin/activate
+python -m uvicorn travel_agent.backend.main:app --reload --port 8002
 
-# 3) Run UI (new terminal)
-streamlit run travel_agent/frontend/app.py
+# 3) Run Frontend (Terminal 2)
+source .venv/bin/activate
+streamlit run travel_agent/frontend/app.py --server.port 8501
 ```
+
+### 🌐 **접속 정보**
+- **프론트엔드**: http://localhost:8501
+- **백엔드 API**: http://localhost:8002
+- **API 문서**: http://localhost:8002/docs
+
+### ⚠️ **중요 사항**
+- **백엔드**: 프로젝트 루트에서 실행해야 함 (import 문제 해결)
+- **포트 충돌**: 8000, 8001이 사용 중인 경우 다른 포트 사용
+- **가상환경**: 반드시 `.venv` 활성화 후 실행
+
+## 🖥️ **상세 실행 방법**
+
+### **백엔드 실행 (Terminal 1)**
+```bash
+# 프로젝트 루트에서
+cd /path/to/travel_agent
+source .venv/bin/activate
+python -m uvicorn travel_agent.backend.main:app --reload --port 8002
+```
+
+### **프론트엔드 실행 (Terminal 2)**
+```bash
+# 새 터미널에서 (프로젝트 루트)
+cd /path/to/travel_agent
+source .venv/bin/activate
+streamlit run travel_agent/frontend/app.py --server.port 8501
+```
+
+### **포트 변경이 필요한 경우**
+```bash
+# 백엔드 포트 변경
+python -m uvicorn travel_agent.backend.main:app --reload --port 8003
+
+# 프론트엔드 포트 변경
+streamlit run travel_agent/frontend/app.py --server.port 8502
+```
+
+### **문제 해결**
+- **Import 오류**: 프로젝트 루트에서 실행 확인
+- **포트 충돌**: `lsof -i :8002`로 포트 사용 확인
+- **가상환경**: `which python`으로 올바른 Python 경로 확인
 
 ## 🔑 Environment variables (.env)
 

@@ -2,6 +2,7 @@ import streamlit as st
 import httpx
 from datetime import date, timedelta
 import json
+import os
 
 # 시각화 컴포넌트 import
 try:
@@ -515,10 +516,12 @@ with st.sidebar:
     st.header("⚙️ 설정")
     
     # 백엔드 설정
+    # 환경변수에서 백엔드 URL 가져오기 (기본값: localhost:8000)
+    default_backend = os.getenv("BACKEND_URL", "http://localhost:8000")
     backend_url = st.text_input(
         "백엔드 URL", 
-        value="http://localhost:8000",
-        help="백엔드 서버의 URL을 입력하세요"
+        value=default_backend,
+        help="백엔드 서버의 URL을 입력하세요 (환경변수 BACKEND_URL로 설정 가능)"
     )
     
     # 오케스트레이터 모드 선택

@@ -12,12 +12,12 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
-from .schemas import UserPreferences, PlanResponse, ErrorResponse
-from .graph import plan_itinerary
-from .orchestrators.crew import plan_with_crew
-from .tools.weather import get_forecast_weather
-from .tools.places import search_places_async
-from .tools.wiki import get_destination_info
+from travel_agent.backend.schemas import UserPreferences, PlanResponse, ErrorResponse
+from travel_agent.backend.graph import plan_itinerary
+from travel_agent.backend.orchestrators.crew import plan_with_crew
+from travel_agent.backend.tools.weather import get_forecast_weather
+from travel_agent.backend.tools.places import search_places_async
+from travel_agent.backend.tools.wiki import get_destination_info
 
 # 환경 변수 로드
 load_dotenv()
