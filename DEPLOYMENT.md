@@ -20,13 +20,15 @@
 **Secrets** 섹션에서 다음 환경 변수 설정:
 
 ```toml
-OPENAI_API_KEY = "sk-proj-..."
-OPENWEATHER_API_KEY = "df624c4b28cd5be046824a2c38ce8469"
-GOOGLE_MAPS_API_KEY = "AIzaSyBepFNHq9AQAIuIDQl2DO0pQ2_TKZ_BUdE"
-FOURSQUARE_API_KEY = "your_foursquare_key"
-TAVILY_API_KEY = "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"
+# 백엔드 URL만 설정 (API 키는 백엔드에서 관리)
 BACKEND_URL = "https://your-huggingface-spaces-url.com"
+
+# 환경 설정
+APP_ENV = "production"
+DEFAULT_LOCALE = "ko_KR"
 ```
+
+**중요**: API 키는 백엔드 환경 변수에서 관리됩니다. 프론트엔드는 백엔드만 호출하는 프록시 패턴을 사용합니다.
 
 ### 1.4 배포 실행
 - **"Deploy!"** 버튼 클릭
@@ -71,7 +73,14 @@ TAVILY_API_KEY = "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"
 
 ## 🔗 **3단계: 프론트엔드-백엔드 연결**
 
-### 3.1 백엔드 URL 업데이트
+### 3.1 백엔드 프록시 패턴
+이 시스템은 **백엔드 프록시 패턴**을 사용합니다:
+
+- **프론트엔드**: API 키 입력 없음, 백엔드만 호출
+- **백엔드**: 환경 변수에서 API 키 관리, 외부 API 호출
+- **사용자**: API 키 걱정 없이 서비스 이용
+
+### 3.2 백엔드 URL 업데이트
 Streamlit Cloud의 **Secrets**에서:
 ```toml
 BACKEND_URL = "https://your-username-travel-agent-ai-backend.hf.space"

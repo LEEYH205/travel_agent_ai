@@ -140,6 +140,19 @@ async def validate_preferences(pref: UserPreferences) -> UserPreferences:
     
     return pref
 
+async def validate_api_keys_for_mode(mode: str) -> None:
+    """모드별 필수 API 키 검증"""
+    if mode == "crew":
+        # CrewAI 모드에서는 OpenAI API 키가 필수
+        if not os.getenv("OPENAI_API_KEY"):
+            raise HTTPException(
+                status_code=400, 
+                detail="CrewAI 모드를 사용하려면 OpenAI API 키가 필요합니다. 백엔드 관리자에게 문의하세요."
+            )
+    
+    # 다른 모드들에 대한 검증도 추가 가능
+    return None
+
 # 헬스 체크 엔드포인트
 @app.get("/health", tags=["시스템"])
 async def health_check():
@@ -189,15 +202,12 @@ async def create_travel_plan(
         
         start_time = time.time()
         
+        # API 키 검증
+        await validate_api_keys_for_mode(mode)
+        
         # 모드별 계획 생성
         if mode == "crew":
             # CrewAI 모드
-            if not os.getenv("OPENAI_API_KEY"):
-                raise HTTPException(
-                    status_code=400, 
-                    detail="CrewAI 모드를 사용하려면 OpenAI API 키가 필요합니다"
-                )
-            
             result = await plan_with_crew(pref)
             logger.info("🤖 CrewAI 모드로 계획 생성 완료")
             

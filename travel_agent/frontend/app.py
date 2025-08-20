@@ -521,40 +521,32 @@ with st.sidebar:
             ("graph", "📊 Graph 모드 (기본 알고리즘)")
         ],
         format_func=lambda x: x[1],
-        help="CrewAI 모드는 OpenAI API 키가 필요합니다"
+        help="CrewAI 모드는 백엔드에서 OpenAI API 키를 사용합니다"
     )
     mode = mode[0]  # 실제 값 추출
     
-    # API 키 상태 표시
-    st.subheader("🔑 API 상태")
+    # 백엔드 상태 확인
+    st.subheader("🔗 백엔드 상태")
     
-    # OpenAI API 키 확인
-    openai_key = st.secrets.get("OPENAI_API_KEY", "") if hasattr(st, 'secrets') else ""
-    if openai_key:
-        st.success("✅ OpenAI API 키 설정됨")
-    else:
-        st.warning("⚠️ OpenAI API 키 미설정")
-    
-    # OpenWeather API 키 확인
-    weather_key = st.secrets.get("OPENWEATHER_API_KEY", "") if hasattr(st, 'secrets') else ""
-    if weather_key:
-        st.success("✅ OpenWeather API 키 설정됨")
-    else:
-        st.warning("⚠️ OpenWeather API 키 미설정")
-    
-    # Google Maps API 키 확인
-    maps_key = st.secrets.get("GOOGLE_MAPS_API_KEY", "") if hasattr(st, 'secrets') else ""
-    if maps_key:
-        st.success("✅ Google Maps API 키 설정됨")
-    else:
-        st.warning("⚠️ Google Maps API 키 미설정")
-    
-    # FourSquare API 키 확인
-    foursquare_key = st.secrets.get("FOURSQUARE_API_KEY", "") if hasattr(st, 'secrets') else ""
-    if foursquare_key:
-        st.success("✅ FourSquare API 키 설정됨")
-    else:
-        st.warning("⚠️ FourSquare API 키 미설정")
+    # 백엔드 연결 상태 확인
+    try:
+        response = httpx.get(f"{backend_url}/api/status", timeout=5.0)
+        if response.status_code == 200:
+            st.success("✅ 백엔드 연결됨")
+            # API 키 상태 표시
+            status_data = response.json()
+            api_keys = status_data.get("api_keys", {})
+            
+            for service, status in api_keys.items():
+                if status:
+                    st.success(f"✅ {service.title()} API 키 설정됨")
+                else:
+                    st.warning(f"⚠️ {service.title()} API 키 미설정")
+        else:
+            st.error("❌ 백엔드 응답 오류")
+    except Exception as e:
+        st.error(f"❌ 백엔드 연결 실패: {str(e)}")
+        st.info("💡 백엔드 서버가 실행 중인지 확인하세요")
     
     st.divider()
     
