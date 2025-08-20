@@ -60,9 +60,22 @@ app = FastAPI(
 )
 
 # 미들웨어 설정
+# CORS 설정 - 개발/프로덕션 환경에 따라 다르게 설정
+cors_origins = [
+    "http://localhost:8501",  # 로컬 개발
+    "http://localhost:3000",  # React 개발 (향후)
+    "https://*.streamlit.app",  # Streamlit Cloud
+    "https://*.hf.space",      # Hugging Face Spaces
+]
+
+# 환경 변수에서 추가 도메인 허용
+additional_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+if additional_origins and additional_origins[0]:
+    cors_origins.extend([origin.strip() for origin in additional_origins])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 특정 도메인만 허용
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

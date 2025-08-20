@@ -1,0 +1,14 @@
+# Hugging Face Spaces 배포용 requirements.txt
+# 백엔드에 필요한 핵심 패키지만 포함
+
+fastapi==0.112.2
+uvicorn[standard]==0.30.6
+pydantic==2.9.0
+python-dotenv==1.0.1
+httpx==0.27.2
+geopy==2.4.1
+openai>=1.68.2,<1.100.0
+langchain-openai>=0.1.25
+langchain-community>=0.2.12
+crewai>=0.165.1
+tavily-python>=0.3.6

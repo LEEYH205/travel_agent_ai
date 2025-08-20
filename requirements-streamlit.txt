@@ -1,0 +1,8 @@
+# Streamlit Cloud 배포용 requirements.txt
+# 프론트엔드에 필요한 핵심 패키지만 포함
+
+streamlit==1.37.1
+httpx==0.27.2
+plotly>=5.18.0
+pandas>=2.1.4
+python-dotenv==1.0.1
