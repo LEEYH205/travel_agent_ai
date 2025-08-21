@@ -3,7 +3,7 @@ import os
 import json
 import asyncio
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew
@@ -175,11 +175,23 @@ class EnhancedCrewOrchestrator:
             if not destination or not interests:
                 return "목적지와 관심사 정보가 필요합니다."
             
-            # 비동기 함수를 동기적으로 실행
-            loop = asyncio.get_event_loop()
-            places = loop.run_until_complete(
-                search_places_async(destination, interests, limit=15)
-            )
+            # 이벤트 루프 상태 확인 및 안전한 실행
+            try:
+                # 이미 실행 중인 이벤트 루프가 있는지 확인
+                loop = asyncio.get_running_loop()
+                # 실행 중인 루프가 있으면 동기적으로 실행할 수 없음
+                logger.warning("이벤트 루프가 이미 실행 중입니다. 동기 실행을 건너뜁니다.")
+                return "장소 검색을 완료할 수 없습니다: 비동기 환경에서 실행 중입니다."
+            except RuntimeError:
+                # 실행 중인 루프가 없는 경우에만 동기 실행
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    places = loop.run_until_complete(
+                        search_places_async(destination, interests, limit=15)
+                    )
+                finally:
+                    loop.close()
             
             # Place 객체를 딕셔너리로 변환
             places_data = []
@@ -210,15 +222,24 @@ class EnhancedCrewOrchestrator:
             if not origin or not destination:
                 return "출발지와 목적지 정보가 필요합니다."
             
-            # 비동기 함수를 동기적으로 실행
-            loop = asyncio.get_event_loop()
-            route = loop.run_until_complete(
-                get_directions_async(
-                    (origin["lat"], origin["lon"]),
-                    (destination["lat"], destination["lon"]),
-                    mode
-                )
-            )
+            # 이벤트 루프 상태 확인 및 안전한 실행
+            try:
+                loop = asyncio.get_running_loop()
+                logger.warning("이벤트 루프가 이미 실행 중입니다. 동기 실행을 건너뜁니다.")
+                return "경로 계산을 완료할 수 없습니다: 비동기 환경에서 실행 중입니다."
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    route = loop.run_until_complete(
+                        get_directions_async(
+                            (origin["lat"], origin["lon"]),
+                            (destination["lat"], destination["lon"]),
+                            mode
+                        )
+                    )
+                finally:
+                    loop.close()
             
             if route:
                 return json.dumps(route, ensure_ascii=False, indent=2)
@@ -242,11 +263,20 @@ class EnhancedCrewOrchestrator:
             for place in places:
                 places_tuples.append((place["name"], place["lat"], place["lon"]))
             
-            # 비동기 함수를 동기적으로 실행
-            loop = asyncio.get_event_loop()
-            optimized_places, routes = loop.run_until_complete(
-                optimize_route_async(places_tuples, mode)
-            )
+            # 이벤트 루프 상태 확인 및 안전한 실행
+            try:
+                loop = asyncio.get_running_loop()
+                logger.warning("이벤트 루프가 이미 실행 중입니다. 동기 실행을 건너뜁니다.")
+                return "경로 최적화를 완료할 수 없습니다: 비동기 환경에서 실행 중입니다."
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    optimized_places, routes = loop.run_until_complete(
+                        optimize_route_async(places_tuples, mode)
+                    )
+                finally:
+                    loop.close()
             
             result = {
                 "optimized_places": [
@@ -268,11 +298,20 @@ class EnhancedCrewOrchestrator:
             if not destination:
                 return "목적지 정보가 필요합니다."
             
-            # 비동기 함수를 동기적으로 실행
-            loop = asyncio.get_event_loop()
-            info = loop.run_until_complete(
-                get_destination_info(destination, "ko")
-            )
+            # 이벤트 루프 상태 확인 및 안전한 실행
+            try:
+                loop = asyncio.get_running_loop()
+                logger.warning("이벤트 루프가 이미 실행 중입니다. 동기 실행을 건너뜁니다.")
+                return "현지 정보를 수집할 수 없습니다: 비동기 환경에서 실행 중입니다."
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    info = loop.run_until_complete(
+                        get_destination_info(destination, "ko")
+                    )
+                finally:
+                    loop.close()
             
             if info:
                 # 핵심 정보만 추출
@@ -411,6 +450,54 @@ class EnhancedCrewOrchestrator:
     async def plan_with_crew(self, preferences: UserPreferences) -> PlanResponse:
         """CrewAI를 사용한 여행 계획 수립"""
         try:
+            # 이벤트 루프 상태 확인
+            try:
+                running_loop = asyncio.get_running_loop()
+                logger.info("이벤트 루프가 이미 실행 중입니다. CrewAI를 동기적으로 실행합니다.")
+                # 동기 실행을 위한 별도 스레드에서 실행
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self._run_crew_sync, preferences)
+                    result = future.result(timeout=300)  # 5분 타임아웃
+                return result
+            except RuntimeError:
+                # 실행 중인 루프가 없는 경우 정상 실행
+                logger.info("새로운 이벤트 루프에서 CrewAI를 실행합니다.")
+                return await self._run_crew_async(preferences)
+            
+        except Exception as e:
+            logger.error(f"CrewAI 실행 중 오류: {e}")
+            # 오류 발생 시 폴백 방식으로 처리
+            return await self._fallback_planning(preferences)
+    
+    def _run_crew_sync(self, preferences: UserPreferences) -> PlanResponse:
+        """동기적으로 CrewAI 실행 (별도 스레드에서)"""
+        try:
+            # 작업 정의
+            tasks = self.create_tasks(preferences)
+            
+            # Crew 생성 및 실행
+            crew = Crew(
+                agents=list(self.agents.values()),
+                tasks=tasks,
+                verbose=True,
+                memory=True
+            )
+            
+            # 작업 실행
+            result = crew.kickoff()
+            
+            # 결과를 동기적으로 처리
+            return self._process_crew_result_sync(result, preferences)
+            
+        except Exception as e:
+            logger.error(f"동기 CrewAI 실행 중 오류: {e}")
+            # 동기 폴백 처리
+            return self._fallback_planning_sync(preferences)
+    
+    async def _run_crew_async(self, preferences: UserPreferences) -> PlanResponse:
+        """비동기적으로 CrewAI 실행"""
+        try:
             # 작업 정의
             tasks = self.create_tasks(preferences)
             
@@ -431,11 +518,11 @@ class EnhancedCrewOrchestrator:
             return processed_result
             
         except Exception as e:
-            logger.error(f"CrewAI 실행 중 오류: {e}")
+            logger.error(f"비동기 CrewAI 실행 중 오류: {e}")
             # 오류 발생 시 폴백 방식으로 처리
             return await self._fallback_planning(preferences)
     
-    async def _process_crew_result(self, result: Any, preferences: UserPreferences) -> PlanResponse:
+    def _process_crew_result(self, result: Any, preferences: UserPreferences) -> PlanResponse:
         """CrewAI 결과 파싱 및 처리"""
         try:
             # 결과에서 일정 정보 추출
@@ -446,7 +533,7 @@ class EnhancedCrewOrchestrator:
                 days = self._create_day_plans_from_crew_result(itinerary_data["days"], preferences)
             else:
                 # 기본 일정 생성
-                days = await self._create_basic_itinerary(preferences)
+                days = self._create_basic_itinerary_sync(preferences)
             
             # 현지 가이드 정보 추출
             tips = self._extract_tips_from_result(result)
@@ -469,7 +556,7 @@ class EnhancedCrewOrchestrator:
             
         except Exception as e:
             logger.error(f"결과 처리 중 오류: {e}")
-            return await self._fallback_planning(preferences)
+            return self._fallback_planning_sync(preferences)
     
     def _extract_itinerary_from_result(self, result: Any) -> Dict[str, Any]:
         """CrewAI 결과에서 일정 정보 추출"""
@@ -686,6 +773,151 @@ class EnhancedCrewOrchestrator:
                     "type": "emergency_fallback",
                     "content": "긴급 폴백 현지 정보",
                     "source": "emergency_system"
+                }
+            )
+
+    def _process_crew_result_sync(self, result: Any, preferences: UserPreferences) -> PlanResponse:
+        """CrewAI 결과 동기 파싱 및 처리"""
+        try:
+            # 결과에서 일정 정보 추출
+            itinerary_data = self._extract_itinerary_from_result(result)
+            
+            if itinerary_data and itinerary_data.get("days"):
+                # CrewAI 결과를 사용하여 일정 생성
+                days = self._create_day_plans_from_crew_result(itinerary_data["days"], preferences)
+            else:
+                # 기본 일정 생성 (동기)
+                days = self._create_basic_itinerary_sync(preferences)
+            
+            # 현지 가이드 정보 추출
+            tips = self._extract_tips_from_result(result)
+            
+            # 요약 생성
+            summary = f"{preferences.destination} {preferences.start_date}~{preferences.end_date}, 관심사: {', '.join(preferences.interests) or '일반'}"
+            
+            # 현지 정보 추출
+            local_info = self._extract_local_info_from_result(result)
+            
+            return PlanResponse(
+                itinerary=Itinerary(
+                    summary=summary,
+                    days=days,
+                    tips=tips
+                ),
+                mode="crewai_sync",
+                local_info=local_info
+            )
+            
+        except Exception as e:
+            logger.error(f"동기 결과 처리 중 오류: {e}")
+            return self._fallback_planning_sync(preferences)
+    
+    def _create_basic_itinerary_sync(self, preferences: UserPreferences) -> List[DayPlan]:
+        """기본 일정 생성 (동기, 폴백)"""
+        try:
+            # 간단한 기본 일정 생성
+            from datetime import datetime, timedelta
+            start = datetime.fromisoformat(preferences.start_date)
+            end = datetime.fromisoformat(preferences.end_date)
+            num_days = (end - start).days + 1
+            
+            # 기본 장소 생성
+            fallback_place = Place(
+                name=f"{preferences.destination} 관광",
+                category="general",
+                lat=0.0,
+                lon=0.0,
+                description=f"{preferences.destination} 지역 탐방",
+                est_stay_min=180
+            )
+            
+            days = []
+            for i in range(num_days):
+                day_date = start + timedelta(days=i)
+                day_plan = DayPlan(
+                    date=day_date.date().isoformat(),
+                    morning=[fallback_place],
+                    lunch=f"{preferences.destination} 현지 음식 체험",
+                    afternoon=[],
+                    dinner=f"{preferences.destination} 저녁 식사",
+                    evening=[],
+                    transfers=[]
+                )
+                days.append(day_plan)
+            
+            return days
+            
+        except Exception as e:
+            logger.error(f"동기 기본 일정 생성 중 오류: {e}")
+            return []
+    
+    def _fallback_planning_sync(self, preferences: UserPreferences) -> PlanResponse:
+        """CrewAI 실패 시 동기 폴백 방식으로 일정 계획"""
+        try:
+            # 기본 일정 생성
+            days = self._create_basic_itinerary_sync(preferences)
+            
+            # 기본 팁
+            tips = Tips(
+                etiquette=["현지 문화와 관습을 존중하세요"],
+                packing=["편한 신발", "보조 배터리"],
+                safety=["일반적인 여행 주의사항 준수"]
+            )
+            
+            summary = f"{preferences.destination} {preferences.start_date}~{preferences.end_date}, 관심사: {', '.join(preferences.interests) or '일반'}"
+            
+            return PlanResponse(
+                itinerary=Itinerary(
+                    summary=summary,
+                    days=days,
+                    tips=tips
+                ),
+                mode="crewai_sync_fallback",
+                local_info={
+                    "type": "sync_fallback",
+                    "content": "동기 폴백 현지 정보",
+                    "source": "sync_fallback_system"
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"동기 폴백 계획 수립 중 오류: {e}")
+            # 최종 폴백: 기본 일정으로 대체
+            start = datetime.fromisoformat(preferences.start_date)
+            fallback_place = Place(
+                name=f"{preferences.destination} 관광",
+                category="general",
+                lat=0.0,
+                lon=0.0,
+                description=f"{preferences.destination} 지역 탐방",
+                est_stay_min=180
+            )
+            
+            fallback_day = DayPlan(
+                date=start.date().isoformat(),
+                morning=[fallback_place],
+                lunch=f"{preferences.destination} 현지 음식 체험",
+                afternoon=[],
+                dinner=f"{preferences.destination} 저녁 식사",
+                evening=[],
+                transfers=[]
+            )
+            
+            return PlanResponse(
+                itinerary=Itinerary(
+                    summary=f"{preferences.destination} 기본 여행 계획",
+                    days=[fallback_day],
+                    tips=Tips(
+                        etiquette=["기본적인 여행 예의 준수"],
+                        packing=["필수 여행용품"],
+                        safety=["안전한 여행"]
+                    )
+                ),
+                mode="emergency_sync_fallback",
+                local_info={
+                    "type": "emergency_sync_fallback",
+                    "content": "긴급 동기 폴백 현지 정보",
+                    "source": "emergency_sync_system"
                 }
             )
 

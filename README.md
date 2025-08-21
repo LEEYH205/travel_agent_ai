@@ -55,10 +55,17 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - [x] 5.4 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
 - [x] 5.5 실제 클라우드 배포 완료 (Streamlit Cloud + Hugging Face Spaces)
 
+### **Phase 6: 시스템 안정성 및 에러 처리 개선** ✅
+- [x] 6.1 날씨 API 타입 오류 해결 - 데이터 파싱 안전성 강화
+- [x] 6.2 CrewAI 이벤트 루프 충돌 해결 - 동기/비동기 실행 모드 자동 전환
+- [x] 6.3 백엔드 에러 처리 및 폴백 시스템 강화 - 다단계 폴백 구현
+- [x] 6.4 프론트엔드 에러 처리 개선 - 백엔드 응답 검증 및 자동 폴백
+- [x] 6.5 FourSquare API 키 문제 해결 - 모든 API 키 정상 설정 완료
+
 ## 🚀 현재 진행 상황
 
-**현재 단계**: Phase 5.5 완료 - 클라우드 배포 완료 ✅
-**다음 단계**: Phase 6 - 성능 모니터링 및 최적화
+**현재 단계**: Phase 6 완료 - 시스템 안정성 및 에러 처리 개선 완료 ✅
+**다음 단계**: Phase 7 - 성능 모니터링 및 최적화
 
 ### 완료된 작업
 - ✅ CrewAI 기반 Agent 시스템 완성 (5개 에이전트)
@@ -71,13 +78,14 @@ AI 에이전트가 협력하여 사용자 맞춤형 여행 일정을 생성하�
 - ✅ Docker 배포 환경 구축 완성
 - ✅ 백엔드 오류 수정 완료 (local_info 필드, 날씨 타입 오류)
 - ✅ 클라우드 배포 완료 (Streamlit Cloud + Hugging Face Spaces)
+- ✅ **시스템 안정성 개선 완료** (이벤트 루프 충돌, 타입 오류, 폴백 시스템)
 
 ## 🛠️ 기술 스택
 
 - **백엔드**: Python, FastAPI, CrewAI, LangChain
 - **프론트엔드**: Streamlit, React (예정)
 - **AI/LLM**: OpenAI GPT-4, CrewAI Framework
-- **외부 API**: OpenWeather, FourSquare, Google Maps, Wikipedia
+- **외부 API**: OpenWeather, FourSquare, Google Maps, Wikipedia, Tavily
 - **데이터베이스**: SQLite (개발), PostgreSQL (운영 예정)
 
 ## 📁 프로젝트 구조
@@ -108,7 +116,7 @@ cp .env.example .env  # add your keys if available
 
 # 2) Run Backend (Terminal 1)
 source .venv/bin/activate
-python -m uvicorn travel_agent.backend.main:app --reload --port 8002
+python -m travel_agent.backend.main
 
 # 3) Run Frontend (Terminal 2)
 source .venv/bin/activate
@@ -117,12 +125,12 @@ streamlit run travel_agent/frontend/app.py --server.port 8501
 
 ### 🌐 **접속 정보**
 - **프론트엔드**: http://localhost:8501
-- **백엔드 API**: http://localhost:8002
-- **API 문서**: http://localhost:8002/docs
+- **백엔드 API**: http://localhost:8001
+- **API 문서**: http://localhost:8001/docs
 
 ### ⚠️ **중요 사항**
 - **백엔드**: 프로젝트 루트에서 실행해야 함 (import 문제 해결)
-- **포트 충돌**: 8000, 8001이 사용 중인 경우 다른 포트 사용
+- **포트 설정**: 백엔드는 8001, 프론트엔드는 8501 포트 사용
 - **가상환경**: 반드시 `.venv` 활성화 후 실행
 
 ## 🖥️ **상세 실행 방법**
@@ -132,7 +140,7 @@ streamlit run travel_agent/frontend/app.py --server.port 8501
 # 프로젝트 루트에서
 cd /path/to/travel_agent
 source .venv/bin/activate
-python -m uvicorn travel_agent.backend.main:app --reload --port 8002
+python -m travel_agent.backend.main
 ```
 
 ### **프론트엔드 실행 (Terminal 2)**
@@ -145,8 +153,8 @@ streamlit run travel_agent/frontend/app.py --server.port 8501
 
 ### **포트 변경이 필요한 경우**
 ```bash
-# 백엔드 포트 변경
-python -m uvicorn travel_agent.backend.main:app --reload --port 8003
+# 백엔드 포트 변경 (main.py 수정)
+# travel_agent/backend/main.py의 port=8001 부분 수정
 
 # 프론트엔드 포트 변경
 streamlit run travel_agent/frontend/app.py --server.port 8502
@@ -154,8 +162,34 @@ streamlit run travel_agent/frontend/app.py --server.port 8502
 
 ### **문제 해결**
 - **Import 오류**: 프로젝트 루트에서 실행 확인
-- **포트 충돌**: `lsof -i :8002`로 포트 사용 확인
+- **포트 충돌**: `lsof -i :8001`로 포트 사용 확인
 - **가상환경**: `which python`으로 올바른 Python 경로 확인
+
+## 🔧 **최근 해결된 주요 문제들**
+
+### **1. 날씨 API 타입 오류 해결** ✅
+- **문제**: OpenWeather API 응답 데이터 파싱 시 타입 불일치 오류
+- **해결**: 안전한 데이터 타입 변환 및 예외 처리 강화
+- **파일**: `travel_agent/backend/tools/weather.py`
+
+### **2. CrewAI 이벤트 루프 충돌 해결** ✅
+- **문제**: 이미 실행 중인 이벤트 루프에서 새로운 루프 시작 시 충돌
+- **해결**: 이벤트 루프 상태 감지 및 동기/비동기 실행 모드 자동 전환
+- **파일**: `travel_agent/backend/orchestrators/crew.py`
+
+### **3. 백엔드 에러 처리 및 폴백 시스템 강화** ✅
+- **문제**: CrewAI 실패 시 사용자에게 적절한 에러 메시지 전달 부족
+- **해결**: 다단계 폴백 시스템 (CrewAI → Graph → 기본 일정)
+- **파일**: `travel_agent/backend/main.py`
+
+### **4. 프론트엔드 에러 처리 개선** ✅
+- **문제**: 백엔드에서 빈 응답이 와도 사용자에게 성공 메시지 표시
+- **해결**: 백엔드 응답 데이터 검증 및 자동 폴백 모드 전환
+- **파일**: `travel_agent/frontend/app.py`
+
+### **5. FourSquare API 키 문제 해결** ✅
+- **문제**: FourSquare API 키 만료로 인한 장소 검색 실패
+- **해결**: 새로운 API 키 발급 및 환경 변수 설정 완료
 
 ## 🌐 **클라우드 배포 정보**
 
@@ -192,12 +226,12 @@ OpenAI GPT-4 (AI 모델)
 ```bash
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
-TAVILY_API_KEY=
+TAVILY_API_KEY=...
 
-OPENWEATHER_API_KEY=
-FOURSQUARE_API_KEY=
-GOOGLE_MAPS_API_KEY=
-BING_MAPS_KEY=
+OPENWEATHER_API_KEY=...
+FOURSQUARE_API_KEY=...
+GOOGLE_MAPS_API_KEY=...
+BING_MAPS_KEY=...
 
 APP_ENV=dev
 DEFAULT_LOCALE=ko_KR
@@ -211,7 +245,7 @@ DEFAULT_LOCALE=ko_KR
 
 ## 🔄 **다음 단계**
 
-### **Phase 6: 성능 모니터링 및 최적화** 🔄
+### **Phase 7: 성능 모니터링 및 최적화** 🔄
 1. **성능 모니터링 구축**
    - Prometheus + Grafana 모니터링 시스템
    - API 응답 시간 및 사용량 추적
@@ -222,7 +256,7 @@ DEFAULT_LOCALE=ko_KR
    - 캐싱 전략 개선
    - 사용자 피드백 분석 시스템
 
-### **Phase 7: 추가 기능 개발** 📋
+### **Phase 8: 추가 기능 개발** 📋
 1. **사용자 경험 개선**
    - 다국어 지원 (영어, 일본어 등)
    - 모바일 반응형 UI 개선

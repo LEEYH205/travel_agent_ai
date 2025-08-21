@@ -125,17 +125,62 @@ class WeatherService:
             main = data.get("main", {})
             wind = data.get("wind", {})
             
+            # 온도 값 안전한 변환
+            temp = main.get("temp", 0)
+            feels_like = main.get("feels_like", 0)
+            humidity = main.get("humidity", 0)
+            pressure = main.get("pressure", 0)
+            visibility = data.get("visibility", 0)
+            wind_speed = wind.get("speed", 0)
+            
+            # 숫자가 아닌 경우 기본값 사용
+            try:
+                temp = round(float(temp)) if temp is not None else 0
+            except (ValueError, TypeError):
+                temp = 0
+                logger.warning(f"잘못된 온도 값: {main.get('temp')}, 기본값 0 사용")
+            
+            try:
+                feels_like = round(float(feels_like)) if feels_like is not None else 0
+            except (ValueError, TypeError):
+                feels_like = 0
+                logger.warning(f"잘못된 체감온도 값: {main.get('feels_like')}, 기본값 0 사용")
+            
+            try:
+                humidity = int(humidity) if humidity is not None else 0
+            except (ValueError, TypeError):
+                humidity = 0
+                logger.warning(f"잘못된 습도 값: {main.get('humidity')}, 기본값 0 사용")
+            
+            try:
+                pressure = int(pressure) if pressure is not None else 0
+            except (ValueError, TypeError):
+                pressure = 0
+                logger.warning(f"잘못된 기압 값: {main.get('pressure')}, 기본값 0 사용")
+            
+            try:
+                visibility = int(visibility) if visibility is not None else 0
+            except (ValueError, TypeError):
+                visibility = 0
+                logger.warning(f"잘못된 가시도 값: {data.get('visibility')}, 기본값 0 사용")
+            
+            try:
+                wind_speed = round(float(wind_speed) * 3.6, 1) if wind_speed is not None else 0  # m/s to km/h
+            except (ValueError, TypeError):
+                wind_speed = 0
+                logger.warning(f"잘못된 풍속 값: {wind.get('speed')}, 기본값 0 사용")
+            
             return {
                 "date": datetime.now().strftime("%Y-%m-%d"),
                 "summary": weather.get("description", "알 수 없음"),
-                "temp_c": round(float(main.get("temp", 0))),
-                "feels_like_c": round(float(main.get("feels_like", 0))),
+                "temp_c": temp,
+                "feels_like_c": feels_like,
                 "condition": self._map_weather_condition(weather.get("main", "")),
-                "humidity": int(main.get("humidity", 0)),
-                "wind_speed": round(float(wind.get("speed", 0)) * 3.6, 1),  # m/s to km/h
+                "humidity": humidity,
+                "wind_speed": wind_speed,
                 "icon": weather.get("icon", ""),
-                "pressure": int(main.get("pressure", 0)),
-                "visibility": int(data.get("visibility", 0))
+                "pressure": pressure,
+                "visibility": visibility
             }
         except Exception as e:
             logger.error(f"현재 날씨 데이터 파싱 오류: {e}")
@@ -148,32 +193,78 @@ class WeatherService:
             processed_dates = set()
             
             for item in data.get("list", []):
-                date = datetime.fromtimestamp(item["dt"]).strftime("%Y-%m-%d")
-                
-                # 이미 처리된 날짜는 건너뛰기
-                if date in processed_dates:
+                try:
+                    # dt 필드 안전한 변환
+                    dt_value = item.get("dt")
+                    if not dt_value:
+                        continue
+                    
+                    # 숫자가 아닌 경우 건너뛰기
+                    if not isinstance(dt_value, (int, float)):
+                        logger.warning(f"잘못된 dt 값: {dt_value}, 건너뜀")
+                        continue
+                    
+                    date = datetime.fromtimestamp(float(dt_value)).strftime("%Y-%m-%d")
+                    
+                    # 이미 처리된 날짜는 건너뛰기
+                    if date in processed_dates:
+                        continue
+                    
+                    weather = item.get("weather", [{}])[0]
+                    main = item.get("main", {})
+                    
+                    # 온도 값 안전한 변환
+                    temp = main.get("temp", 0)
+                    temp_min = main.get("temp_min", 0)
+                    temp_max = main.get("temp_max", 0)
+                    humidity = main.get("humidity", 0)
+                    
+                    # 숫자가 아닌 경우 기본값 사용
+                    try:
+                        temp = round(float(temp)) if temp is not None else 0
+                    except (ValueError, TypeError):
+                        temp = 0
+                        logger.warning(f"잘못된 온도 값: {main.get('temp')}, 기본값 0 사용")
+                    
+                    try:
+                        temp_min = round(float(temp_min)) if temp_min is not None else 0
+                    except (ValueError, TypeError):
+                        temp_min = 0
+                        logger.warning(f"잘못된 최저온도 값: {main.get('temp_min')}, 기본값 0 사용")
+                    
+                    try:
+                        temp_max = round(float(temp_max)) if temp_max is not None else 0
+                    except (ValueError, TypeError):
+                        temp_max = 0
+                        logger.warning(f"잘못된 최고온도 값: {main.get('temp_max')}, 기본값 0 사용")
+                    
+                    try:
+                        humidity = int(humidity) if humidity is not None else 0
+                    except (ValueError, TypeError):
+                        humidity = 0
+                        logger.warning(f"잘못된 습도 값: {main.get('humidity')}, 기본값 0 사용")
+                    
+                    daily_forecast = {
+                        "date": date,
+                        "summary": weather.get("description", "알 수 없음"),
+                        "temp_c": temp,
+                        "temp_min": temp_min,
+                        "temp_max": temp_max,
+                        "condition": self._map_weather_condition(weather.get("main", "")),
+                        "humidity": humidity,
+                        "icon": weather.get("icon", "")
+                    }
+                    
+                    daily_forecasts.append(daily_forecast)
+                    processed_dates.add(date)
+                    
+                    # 요청한 일수만큼 수집
+                    if len(daily_forecasts) >= days:
+                        break
+                        
+                except Exception as e:
+                    logger.warning(f"개별 예보 항목 처리 중 오류, 건너뜀: {e}")
                     continue
-                
-                weather = item.get("weather", [{}])[0]
-                main = item.get("main", {})
-                
-                daily_forecast = {
-                    "date": date,
-                    "summary": weather.get("description", "알 수 없음"),
-                    "temp_c": round(float(main.get("temp", 0))),
-                    "temp_min": round(float(main.get("temp_min", 0))),
-                    "temp_max": round(float(main.get("temp_max", 0))),
-                    "condition": self._map_weather_condition(weather.get("main", "")),
-                    "humidity": int(main.get("humidity", 0)),
-                    "icon": weather.get("icon", "")
-                }
-                
-                daily_forecasts.append(daily_forecast)
-                processed_dates.add(date)
-                
-                # 요청한 일수만큼 수집
-                if len(daily_forecasts) >= days:
-                    break
             
             return daily_forecasts
             

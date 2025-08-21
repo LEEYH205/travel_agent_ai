@@ -766,10 +766,61 @@ if submitted:
                     timeout=600.0
                 )
                 r.raise_for_status()
-                data = r.json()["itinerary"]
+                response_data = r.json()
+                
+                # 응답 데이터 검증
+                if not response_data or "itinerary" not in response_data:
+                    st.error("❌ 백엔드에서 올바른 응답을 받지 못했습니다.")
+                    st.info("다시 시도해주세요.")
+                    st.stop()
+                
+                data = response_data["itinerary"]
+                
+                # 일정 데이터 검증
+                if not data or not data.get("days") or len(data["days"]) == 0:
+                    st.warning("⚠️ 생성된 일정이 비어있습니다.")
+                    st.info("다른 설정으로 다시 시도해보세요.")
+                    
+                    # 폴백 모드로 재시도
+                    if mode == "crew":
+                        st.info("🔄 Graph 모드로 재시도합니다...")
+                        try:
+                            r_fallback = httpx.post(
+                                f"{backend_url}/plan", 
+                                params={"mode": "graph"}, 
+                                json=payload, 
+                                timeout=300.0
+                            )
+                            r_fallback.raise_for_status()
+                            fallback_response = r_fallback.json()
+                            
+                            if fallback_response and "itinerary" in fallback_response and fallback_response["itinerary"].get("days"):
+                                st.success("✅ Graph 모드로 기본 일정을 생성했습니다!")
+                                data = fallback_response["itinerary"]
+                            else:
+                                st.error("❌ 폴백 모드도 실패했습니다.")
+                                st.stop()
+                        except Exception as fallback_error:
+                            st.error(f"❌ 폴백 모드 실행 실패: {fallback_error}")
+                            st.stop()
+                    else:
+                        st.stop()
                 
                 # 성공 메시지
                 st.success("🎉 여행 계획이 완성되었습니다!")
+                
+                # 생성 모드 표시
+                if response_data.get("mode"):
+                    mode_display = {
+                        "crew": "🤖 CrewAI 협업 모드",
+                        "crewai_sync": "🤖 CrewAI 동기 모드",
+                        "crewai_fallback": "🤖 CrewAI 폴백 모드",
+                        "graph": "📊 Graph 알고리즘 모드",
+                        "fallback": "🔄 기본 폴백 모드",
+                        "emergency_fallback": "🆘 긴급 폴백 모드"
+                    }.get(response_data["mode"], "🤖 AI 모드")
+                    
+                    st.info(f"생성 모드: {mode_display}")
                 
                 # 탭으로 결과 표시
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
@@ -952,7 +1003,7 @@ if submitted:
                 st.error(f"오류 내용: {e.response.text}")
             except Exception as e:
                 st.error(f"❌ 예상치 못한 오류가 발생했습니다: {e}")
-                st.info("💡 백엔드 서버가 실행 중인지 확인해주세요.")
+                st.info("�� 백엔드 서버가 실행 중인지 확인해주세요.")
 
 # 페이지 하단 정보
 st.divider()

@@ -225,13 +225,23 @@ async def create_travel_plan(
         # 모드별 계획 생성
         if mode == "crew":
             # CrewAI 모드
-            result = await plan_with_crew(pref)
-            logger.info("🤖 CrewAI 모드로 계획 생성 완료")
-            
+            try:
+                result = await plan_with_crew(pref)
+                logger.info("🤖 CrewAI 모드로 계획 생성 완료")
+            except Exception as e:
+                logger.error(f"CrewAI 모드 실패, Graph 모드로 폴백: {e}")
+                # CrewAI 실패 시 Graph 모드로 폴백
+                result = await plan_itinerary(pref)
+                logger.info("📊 Graph 모드로 폴백 완료")
         else:
             # Graph 모드
             result = await plan_itinerary(pref)
             logger.info("📊 Graph 모드로 계획 생성 완료")
+        
+        # 결과 검증 및 폴백 처리
+        if not result or not result.itinerary or not result.itinerary.days:
+            logger.warning("생성된 일정이 비어있습니다. 기본 폴백 일정을 생성합니다.")
+            result = await _create_fallback_plan(pref)
         
         # 추가 정보 수집 (선택사항)
         if include_weather:
@@ -263,9 +273,95 @@ async def create_travel_plan(
         raise
     except Exception as e:
         logger.error(f"여행 계획 생성 중 오류: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"여행 계획 생성 중 오류가 발생했습니다: {str(e)}"
+        # 최종 폴백: 기본 일정 생성
+        try:
+            fallback_result = await _create_fallback_plan(pref)
+            logger.info("🆘 최종 폴백 일정 생성 완료")
+            return fallback_result
+        except Exception as fallback_error:
+            logger.error(f"폴백 일정 생성도 실패: {fallback_error}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"여행 계획 생성 중 오류가 발생했습니다: {str(e)}"
+            )
+
+async def _create_fallback_plan(preferences: UserPreferences) -> PlanResponse:
+    """기본 폴백 일정 생성"""
+    try:
+        from datetime import datetime, timedelta
+        from travel_agent.backend.schemas import Place, DayPlan, Itinerary, Tips
+        
+        start = datetime.fromisoformat(preferences.start_date)
+        end = datetime.fromisoformat(preferences.end_date)
+        num_days = (end - start).days + 1
+        
+        # 기본 장소 생성
+        fallback_place = Place(
+            name=f"{preferences.destination} 관광",
+            category="general",
+            lat=0.0,
+            lon=0.0,
+            description=f"{preferences.destination} 지역 탐방 및 현지 문화 체험",
+            est_stay_min=180
+        )
+        
+        # 기본 일정 생성
+        days = []
+        for i in range(num_days):
+            day_date = start + timedelta(days=i)
+            day_plan = DayPlan(
+                date=day_date.date().isoformat(),
+                morning=[fallback_place],
+                lunch=f"{preferences.destination} 현지 음식 체험",
+                afternoon=[],
+                dinner=f"{preferences.destination} 저녁 식사",
+                evening=[],
+                transfers=[]
+            )
+            days.append(day_plan)
+        
+        # 기본 팁
+        tips = Tips(
+            etiquette=["현지 문화와 관습을 존중하세요", "기본적인 여행 예의를 준수하세요"],
+            packing=["편한 신발", "보조 배터리", "현지용 유심/ESIM", "여권 및 신분증"],
+            safety=["소매치기 주의", "늦은 밤 외진 골목 피하기", "긴급연락처 준비"]
+        )
+        
+        summary = f"{preferences.destination} {preferences.start_date}~{preferences.end_date}, 관심사: {', '.join(preferences.interests) or '일반'}"
+        
+        return PlanResponse(
+            itinerary=Itinerary(
+                summary=summary,
+                days=days,
+                tips=tips
+            ),
+            mode="fallback",
+            local_info={
+                "type": "fallback",
+                "content": f"{preferences.destination} 방문을 위한 기본 정보입니다. 현지 문화를 존중하고 안전한 여행을 즐기세요.",
+                "source": "fallback_system"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"폴백 일정 생성 중 오류: {e}")
+        # 최소한의 응답 생성
+        return PlanResponse(
+            itinerary=Itinerary(
+                summary=f"{preferences.destination} 기본 여행 계획",
+                days=[],
+                tips=Tips(
+                    etiquette=["기본적인 여행 예의 준수"],
+                    packing=["필수 여행용품"],
+                    safety=["안전한 여행"]
+                )
+            ),
+            mode="emergency_fallback",
+            local_info={
+                "type": "emergency_fallback",
+                "content": "긴급 폴백 정보",
+                "source": "emergency_system"
+            }
         )
 
 # 날씨 정보 조회 엔드포인트
@@ -391,7 +487,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "travel_agent.backend.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=True,
         log_level="info"
     )
