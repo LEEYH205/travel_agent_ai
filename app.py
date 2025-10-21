@@ -23,7 +23,7 @@ if __name__ == "__main__":
     
     # 호스트를 0.0.0.0으로 설정하여 외부 접근 허용
     uvicorn.run(
-        "travel_agent.backend.main:app",
+        app,  # 직접 app 객체 전달
         host="0.0.0.0",
         port=port,
         reload=False  # 프로덕션에서는 reload 비활성화

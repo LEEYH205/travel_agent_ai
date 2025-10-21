@@ -66,6 +66,7 @@ cors_origins = [
     "http://localhost:3000",  # React 개발 (향후)
     "https://*.streamlit.app",  # Streamlit Cloud
     "https://*.hf.space",      # Hugging Face Spaces
+    "*"  # Hugging Face Spaces에서 모든 오리진 허용
 ]
 
 # 환경 변수에서 추가 도메인 허용
@@ -90,6 +91,8 @@ async def log_requests(request: Request, call_next):
     
     # 요청 정보 로깅
     logger.info(f"📥 {request.method} {request.url.path} - {request.client.host if request.client else 'unknown'}")
+    logger.info(f"📥 Headers: {dict(request.headers)}")
+    logger.info(f"📥 Query params: {dict(request.query_params)}")
     
     response = await call_next(request)
     
@@ -155,6 +158,7 @@ async def validate_api_keys_for_mode(mode: str) -> None:
 
 # 루트 경로 핸들러
 @app.get("/", tags=["시스템"])
+@app.get("/index.html", tags=["시스템"])  # Hugging Face Spaces 호환성
 async def root():
     """루트 경로 - API 정보 및 상태"""
     return {
@@ -179,6 +183,22 @@ async def health_check():
         "service": "Travel Agent AI",
         "version": "1.0.0",
         "timestamp": time.time()
+    }
+
+# Hugging Face Spaces 호환성을 위한 추가 엔드포인트
+@app.get("/api", tags=["시스템"])
+async def api_info():
+    """API 정보"""
+    return {
+        "message": "Travel Agent AI API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "api_status": "/api/status",
+            "plan": "/plan"
+        }
     }
 
 # API 키 상태 확인 엔드포인트
