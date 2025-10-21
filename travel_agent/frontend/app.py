@@ -507,9 +507,9 @@ with st.sidebar:
     # 백엔드 설정
     # Streamlit secrets 또는 환경변수에서 백엔드 URL 가져오기
     try:
-        default_backend = st.secrets.get("BACKEND_URL", "http://localhost:8000")
+        default_backend = st.secrets.get("BACKEND_URL", "https://eddieleeyh-travel-agent-ai-backend.hf.space")
     except:
-        default_backend = os.getenv("BACKEND_URL", "http://localhost:8000")
+        default_backend = os.getenv("BACKEND_URL", "https://eddieleeyh-travel-agent-ai-backend.hf.space")
     
     backend_url = st.text_input(
         "백엔드 URL", 
@@ -763,7 +763,7 @@ if submitted:
                     f"{backend_url}/plan", 
                     params={"mode": mode}, 
                     json=payload, 
-                    timeout=600.0
+                    timeout=120.0  # Streamlit Cloud 제한에 맞춰 120초로 조정
                 )
                 r.raise_for_status()
                 response_data = r.json()
@@ -789,7 +789,7 @@ if submitted:
                                 f"{backend_url}/plan", 
                                 params={"mode": "graph"}, 
                                 json=payload, 
-                                timeout=300.0
+                                timeout=60.0  # Graph 모드는 더 빠르므로 60초로 설정
                             )
                             r_fallback.raise_for_status()
                             fallback_response = r_fallback.json()
@@ -1000,7 +1000,14 @@ if submitted:
                 st.warning("🔄 백엔드에서는 계획 생성이 계속 진행 중일 수 있습니다.")
             except httpx.HTTPStatusError as e:
                 st.error(f"❌ 서버 오류: {e.response.status_code}")
-                st.error(f"오류 내용: {e.response.text}")
+                if e.response.status_code == 502:
+                    st.error("🔧 502 Bad Gateway: 백엔드 서버에 연결할 수 없습니다.")
+                    st.info("💡 해결 방법: 백엔드 URL을 확인하고 서버가 실행 중인지 확인하세요.")
+                elif e.response.status_code == 504:
+                    st.error("⏰ 504 Gateway Timeout: 요청 처리 시간이 초과되었습니다.")
+                    st.info("💡 해결 방법: Graph 모드를 사용하거나 잠시 후 다시 시도하세요.")
+                else:
+                    st.error(f"오류 내용: {e.response.text}")
             except Exception as e:
                 st.error(f"❌ 예상치 못한 오류가 발생했습니다: {e}")
                 st.info("�� 백엔드 서버가 실행 중인지 확인해주세요.")
