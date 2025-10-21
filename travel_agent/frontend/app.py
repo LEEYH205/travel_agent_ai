@@ -763,18 +763,33 @@ if submitted:
                     f"{backend_url}/plan", 
                     params={"mode": mode}, 
                     json=payload, 
-                    timeout=120.0  # Streamlit Cloud 제한에 맞춰 120초로 조정
+                    timeout=600.0
                 )
                 r.raise_for_status()
                 response_data = r.json()
                 
-                # 응답 데이터 검증
-                if not response_data or "itinerary" not in response_data:
-                    st.error("❌ 백엔드에서 올바른 응답을 받지 못했습니다.")
+                # 응답 데이터 검증 및 디버깅
+                st.write("🔍 응답 데이터 구조 확인:")
+                st.json(response_data)
+                
+                if not response_data:
+                    st.error("❌ 백엔드에서 빈 응답을 받았습니다.")
                     st.info("다시 시도해주세요.")
                     st.stop()
                 
-                data = response_data["itinerary"]
+                # 응답 구조 확인
+                if "itinerary" in response_data:
+                    data = response_data["itinerary"]
+                elif "data" in response_data:
+                    data = response_data["data"]
+                elif isinstance(response_data, dict) and "days" in response_data:
+                    # 직접 일정 데이터인 경우
+                    data = response_data
+                else:
+                    st.error("❌ 백엔드에서 예상하지 못한 응답 구조를 받았습니다.")
+                    st.write("받은 응답:", response_data)
+                    st.info("다시 시도해주세요.")
+                    st.stop()
                 
                 # 일정 데이터 검증
                 if not data or not data.get("days") or len(data["days"]) == 0:
@@ -789,7 +804,7 @@ if submitted:
                                 f"{backend_url}/plan", 
                                 params={"mode": "graph"}, 
                                 json=payload, 
-                                timeout=60.0  # Graph 모드는 더 빠르므로 60초로 설정
+                                timeout=300.0
                             )
                             r_fallback.raise_for_status()
                             fallback_response = r_fallback.json()
